@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>MANUGAMER - Dino Run</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body {
+      background: black;
+      font-family: 'Arial', sans-serif;
+      overflow: hidden;
+    }
+    canvas {
+      display: block;
+      margin: auto;
+      background-color: #0d1b4c; /* Fondo azul gamer */
+      border: 4px solid white;
+    }
+    #game-over {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(0, 0, 0, 0.85);
+      color: white;
+      font-size: 28px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 99;
+      display: none;
+    }
+    #game-over button {
+      margin-top: 20px;
+      padding: 10px 20px;
+      font-size: 20px;
+      background: #00bcd4;
+      border: none;
+      color: white;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+    #score {
+      position: absolute;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 20px;
+      color: white;
+      z-index: 5;
+    }
+  </style>
+</head>
+<body>
+<div id="score">manupoints: 0</div>
+<div id="game-over">
+  <div>💥 ¡GAME OVER!</div>
+  <div id="final-score">Puntuación: 0 manupoints</div>
+  <button onclick="location.reload()">Reintentar</button>
+</div>
+<canvas id="game" width="800" height="400"></canvas>
+
+<audio id="jumpSound" src="https://www.myinstants.com/media/sounds/jump_11.mp3"></audio>
+<audio id="crashSound" src="https://www.myinstants.com/media/sounds/metal-crash.mp3"></audio>
+
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+const jumpSound = document.getElementById("jumpSound");
+const crashSound = document.getElementById("crashSound");
+const gameOverScreen = document.getElementById("game-over");
+const finalScoreText = document.getElementById("final-score");
+const scoreDisplay = document.getElementById("score");
+
+let player = {
+  x: 50,
+  y: 300,
+  width: 40,
+  height: 40,
+  velocityY: 0,
+  jump: -15,
+  gravity: 0.7,
+  grounded: false
+};
+
+let obstacles = [];
+let score = 0;
+let speed = 6;
+let frame = 0;
+let gameOver = false;
+
+function drawTextBackground() {
+  ctx.font = "bold 40px Arial";
+  ctx.fillStyle = "rgba(255,255,255,0.1)";
+  ctx.fillText("MANUGAMER", 500, 60);
+}
+
+function drawPlayer() {
+  ctx.fillStyle = "cyan";
+  ctx.fillRect(player.x, player.y, player.width, player.height);
+}
+
+function drawObstacles() {
+  ctx.fillStyle = "red";
+  obstacles.forEach(ob => {
+    ctx.fillRect(ob.x, ob.y, ob.width, ob.height);
+  });
+}
+
+function spawnObstacle() {
+  if (frame % 100 === 0) {
+    let height = 30 + Math.random() * 50;
+    obstacles.push({ x: canvas.width, y: canvas.height - height, width: 20, height });
+  }
+}
+
+function updatePlayer() {
+  player.velocityY += player.gravity;
+  player.y += player.velocityY;
+
+  if (player.y + player.height >= canvas.height) {
+    player.y = canvas.height - player.height;
+    player.grounded = true;
+    player.velocityY = 0;
+  } else {
+    player.grounded = false;
+  }
+}
+
+function checkCollision(a, b) {
+  return (
+    a.x < b.x + b.width &&
+    a.x + a.width > b.x &&
+    a.y < b.y + b.height &&
+    a.y + a.height > b.y
+  );
+}
+
+function updateObstacles() {
+  for (let i = 0; i < obstacles.length; i++) {
+    obstacles[i].x -= speed;
+
+    if (checkCollision(player, obstacles[i])) {
+      crashSound.play();
+      gameOver = true;
+      showGameOver();
+    }
+
+    if (obstacles[i].x + obstacles[i].width < 0) {
+      obstacles.splice(i, 1);
+      score++;
+      scoreDisplay.textContent = "manupoints: " + score;
+
+      // 🎯 Aumentar velocidad cada 10 puntos
+      if (score % 10 === 0) {
+        speed += 1;
+      }
+    }
+  }
+}
+
+function showGameOver() {
+  finalScoreText.textContent = "Puntuación: " + score + " manupoints";
+  gameOverScreen.style.display = "flex";
+}
+
+document.addEventListener("keydown", e => {
+  if (e.code === "Space" && player.grounded && !gameOver) {
+    player.velocityY = player.jump;
+    jumpSound.play();
+  }
+});
+
+canvas.addEventListener("touchstart", () => {
+  if (player.grounded && !gameOver) {
+    player.velocityY = player.jump;
+    jumpSound.play();
+  }
+});
+
+function loop() {
+  if (gameOver) return;
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  drawTextBackground();
+  drawPlayer();
+  drawObstacles();
+  updatePlayer();
+  updateObstacles();
+  spawnObstacle();
+
+  frame++;
+  requestAnimationFrame(loop);
+}
+
+loop();
+</script>
+</body>
+</html>
+
+
+
+
+
+
